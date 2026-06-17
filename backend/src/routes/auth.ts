@@ -11,10 +11,11 @@ const credentialsSchema = z.object({
   password: z.string().min(8),
 });
 
+const isProduction = process.env.NODE_ENV === "production";
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  secure: isProduction,
+  sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
   maxAge: 30 * 24 * 60 * 60 * 1000,
 };
 

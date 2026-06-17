@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  plaidItems   PlaidItem[]
+  transactions Transaction[]
+}
+
+model PlaidItem {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId            String   @unique
+  accessTokenEnc    String
+  institutionName   String?
+  cursor            String?
+  createdAt         DateTime @default(now())
+
+  accounts     PlaidAccount[]
+  transactions Transaction[]
+}
+
+model PlaidAccount {
+  id          String   @id @default(uuid())
+  plaidItemId String
+  plaidItem   PlaidItem @relation(fields: [plaidItemId], references: [id], onDelete: Cascade)
+  accountId   String   @unique
+  name        String
+  mask        String?
+  type        String?
+  subtype     String?
+
+  transactions Transaction[]
+}
+
+enum TransactionSource {
+  PLAID
+  MANUAL
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionMethod {
+  CASH
+  CARD_OTHER
+  BANK_TRANSFER
+  OTHER
+}
+
+model Transaction {
+  id                 String             @id @default(uuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source             TransactionSource
+  type               TransactionType
+  amount             Decimal            @db.Decimal(12, 2)
+  date               DateTime
+  description        String
+  category           String
+  method             TransactionMethod?
+  pending            Boolean            @default(false)
+  plaidTransactionId String?            @unique
+  plaidItemId        String?
+  plaidItem          PlaidItem?         @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+  plaidAccountId     String?
+  plaidAccount       PlaidAccount?      @relation(fields: [plaidAccountId], references: [id], onDelete: SetNull)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([userId, date])
+}
